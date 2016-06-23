@@ -337,7 +337,7 @@ Kwabena W. Agyeman</property>
     <property name="default_height">600</property>
     <signal name="destroy" handler="on_top_window_destroy" swapped="no"/>
     <child>
-      <object class="GtkBox">
+      <object class="GtkBox" id="top-window-vbox1">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="hexpand">True</property>
@@ -687,7 +687,7 @@ Kwabena W. Agyeman</property>
           </packing>
         </child>
         <child>
-          <object class="GtkPaned">
+          <object class="GtkPaned" id="top-window-gtkpaned1">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="hexpand">True</property>
@@ -697,7 +697,7 @@ Kwabena W. Agyeman</property>
             <property name="position_set">True</property>
             <property name="wide_handle">True</property>
             <child>
-              <object class="GtkPaned">
+              <object class="GtkPaned" id="top-window-gtkpaned2">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="hexpand">True</property>
@@ -706,7 +706,7 @@ Kwabena W. Agyeman</property>
                 <property name="position_set">True</property>
                 <property name="wide_handle">True</property>
                 <child>
-                  <object class="GtkScrolledWindow">
+                  <object class="GtkScrolledWindow" id="gtkscrolledwindow1">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="hexpand">True</property>
@@ -740,7 +740,7 @@ Kwabena W. Agyeman</property>
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkBox">
+                  <object class="GtkBox" id="top-window-vbox2">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="hexpand">True</property>
@@ -850,12 +850,12 @@ Kwabena W. Agyeman</property>
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkBox">
+                                  <object class="GtkBox" id="frame2_vbox1">
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
                                     <property name="orientation">vertical</property>
                                     <child>
-                                      <object class="GtkScale">
+                                      <object class="GtkScale" id="frame2_scale4">
                                         <property name="visible">True</property>
                                         <property name="can_focus">True</property>
                                         <property name="hexpand">True</property>
@@ -869,7 +869,7 @@ Kwabena W. Agyeman</property>
                                       </packing>
                                     </child>
                                     <child>
-                                      <object class="GtkBox">
+                                      <object class="GtkBox" id="box2333">
                                         <property name="visible">True</property>
                                         <property name="can_focus">False</property>
                                         <child>
@@ -1010,7 +1010,7 @@ Kwabena W. Agyeman</property>
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkScale">
+                                  <object class="GtkScale" id="frame2_scale1">
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                     <property name="hexpand">True</property>
@@ -1023,7 +1023,7 @@ Kwabena W. Agyeman</property>
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkScale">
+                                  <object class="GtkScale" id="frame2_scale2">
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                     <property name="hexpand">True</property>
@@ -1036,7 +1036,7 @@ Kwabena W. Agyeman</property>
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkScale">
+                                  <object class="GtkScale" id="frame2_scale3">
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                     <property name="hexpand">True</property>
@@ -1133,7 +1133,7 @@ Kwabena W. Agyeman</property>
     <property name="type_hint">dialog</property>
     <property name="transient_for">top_window</property>
     <child internal-child="vbox">
-      <object class="GtkBox" id="dialog-vbox5">
+      <object class="GtkBox" id="dialog-vbox">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="orientation">vertical</property>
@@ -1180,12 +1180,12 @@ Kwabena W. Agyeman</property>
           </packing>
         </child>
         <child>
-          <object class="GtkGrid">
+          <object class="GtkGrid" id="dialog-grid1">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="row_spacing">5</property>
             <child>
-              <object class="GtkLabel">
+              <object class="GtkLabel" id="pref-label1">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="halign">start</property>
@@ -1197,7 +1197,7 @@ Kwabena W. Agyeman</property>
               </packing>
             </child>
             <child>
-              <object class="GtkLabel">
+              <object class="GtkLabel" id="pref-label2">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="halign">start</property>
@@ -1209,7 +1209,7 @@ Kwabena W. Agyeman</property>
               </packing>
             </child>
             <child>
-              <object class="GtkLabel">
+              <object class="GtkLabel" id="pref-label3">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="halign">start</property>
