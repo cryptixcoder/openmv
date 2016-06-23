@@ -4,16 +4,12 @@ import platform
 block_cipher = None
 sysname = platform.system()
 
-rt_hooks = None
-if sysname == "Linux" or sysname == "Darwin":
-    rt_hooks=['gdk_rthook.py']
-
 a = Analysis(['openmv-ide.py'],
              hiddenimports=['numpy'],
              hookspath=None,
-             runtime_hooks=rt_hooks,
              excludes=None,
              cipher=block_cipher)
+
 pyz = PYZ(a.pure,
              cipher=block_cipher)
 
@@ -25,19 +21,11 @@ else:
 
 exe_tree = [('logo.png', 'logo.png', 'DATA'),
             ('pinout.png', 'pinout.png', 'DATA'),
-            ('openmv-ide.glade', 'openmv-ide.glade', 'DATA'),
-            ('loaders.cache', 'loaders.cache', 'DATA')]
-
-gdk_loaders = []
-if sysname == "Linux" or sysname == "Darwin":
-    pixbuf_dir = '/usr/lib/x86_64-linux-gnu/gdk-pixbuf-2.0/2.10.0/loaders'
-    for pixbuf_type in os.listdir(pixbuf_dir):
-        if pixbuf_type.endswith('.so'):
-            gdk_loaders.append((pixbuf_type, os.path.join(pixbuf_dir, pixbuf_type), 'BINARY'))
+            ('openmv-ide.glade', 'openmv-ide.glade', 'DATA')]
 
 exe = EXE(pyz,
           a.scripts,
-          a.binaries + gdk_loaders,
+          a.binaries,
           a.zipfiles,
           a.datas,
           exe_tree,
@@ -66,9 +54,9 @@ data_tree += Tree('../firmware', prefix='firmware')
 
 # bundle gtksourceview style/lang files
 if sysname == "Linux":
-    data_tree += Tree('/usr/share/gtksourceview-2.0/', prefix='share/gtksourceview-2.0')
+    data_tree += Tree('/usr/share/gtksourceview-3.0/', prefix='share/gtksourceview-3.0')
 elif sysname == "Darwin":
-    data_tree += Tree('/usr/local/share/gtksourceview-2.0/', prefix='share/gtksourceview-2.0')
+    data_tree += Tree('/usr/local/share/gtksourceview-3.0/', prefix='share/gtksourceview-3.0')
 elif sysname == "Windows":
     data_tree += Tree('C:/Python27/Lib/site-packages/gtk-2.0/runtime/share/gtksourceview-2.0', prefix='share/gtksourceview-2.0')
 

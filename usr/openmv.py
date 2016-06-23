@@ -102,7 +102,7 @@ def fb_dump():
     if (buff.size != (size[0]*size[1]*3)):
         return None
 
-    return (size[0], size[1], buff.reshape((size[1], size[0], 3)))
+    return (size[0], size[1], buff.reshape((size[1], size[0], 3)).tobytes())
 
 def fb_update():
     __serial.write(struct.pack("<BBI", __USBDBG_CMD, __USBDBG_FRAME_UPDATE, 0))

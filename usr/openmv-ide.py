@@ -1,18 +1,29 @@
 #!/usr/bin/env python2
+
 import openmv
-import gtk
-import gobject
-import pango
-import serial
-import platform
-import sys, os, os.path
-from time import sleep
-from os.path import expanduser
-import gtksourceview2 as gtksourceview
+import numpy as np
+
 import glob
 import urllib2, json
-import numpy as np
+
+import serial
 import serial.tools.list_ports as list_ports
+
+import platform, sys, os, os.path
+from time import sleep
+from os.path import expanduser
+
+import gi
+gi.require_version('Gtk', '3.0')
+gi.require_version('GtkSource', '3.0')
+from gi.repository import Gtk
+from gi.repository import Gdk
+from gi.repository import GdkPixbuf
+from gi.repository import GObject
+from gi.repository import Pango
+from gi.repository import cairo
+from gi.repository import GtkSource
+
 try:
     # 3.x name
     import configparser
@@ -80,22 +91,22 @@ class Bootloader:
         self.fw_path_button.connect("clicked", self.on_fw_path)
 
     def show_message_dialog(self, msg_type, msg):
-        message = gtk.MessageDialog(parent=self.parent, flags=gtk.DIALOG_DESTROY_WITH_PARENT,
-                                    type=msg_type, buttons=gtk.BUTTONS_OK, message_format=msg)
+        message = Gtk.MessageDialog(parent=self.parent, flags=Gtk.DIALOG_DESTROY_WITH_PARENT,
+                                    type=msg_type, buttons=Gtk.BUTTONS_OK, message_format=msg)
         message.run()
         message.destroy()
 
     def on_fw_path(self, widget):
-        dialog = gtk.FileChooserDialog(title=None,action=gtk.FILE_CHOOSER_ACTION_OPEN,
-                buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL, gtk.STOCK_OPEN, gtk.RESPONSE_OK))
-        dialog.set_default_response(gtk.RESPONSE_OK)
+        dialog = Gtk.FileChooserDialog(title=None,action=Gtk.FILE_CHOOSER_ACTION_OPEN,
+                buttons=(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_OPEN, Gtk.ResponseType.OK))
+        dialog.set_default_response(Gtk.ResponseType.OK)
         dialog.set_current_folder(SCRIPTS_DIR)
-        ff = gtk.FileFilter()
+        ff = Gtk.FileFilter()
         ff.set_name("binary")
         ff.add_pattern("*.bin")
         dialog.add_filter(ff)
 
-        if dialog.run() == gtk.RESPONSE_OK:
+        if dialog.run() == Gtk.ResponseType.OK:
             self.fw_path_entry.set_text(dialog.get_filename())
 
         dialog.destroy()
@@ -191,7 +202,7 @@ class Bootloader:
         return True
 
     def on_dialog_response(self, dialog, response, *args):
-        if response == gtk.RESPONSE_OK:
+        if response == Gtk.ResponseType.OK:
             self.ok_button.set_sensitive(False)
             self.fw_path_button.set_sensitive(False)
 
@@ -200,7 +211,7 @@ class Bootloader:
                 with open(fw_path, 'rb') as f:
                     buf = f.read()
             except Exception as e:
-                self.show_message_dialog(gtk.MESSAGE_ERROR, "Failed to open file %s"%str(e))
+                self.show_message_dialog(Gtk.MESSAGE_ERROR, "Failed to open file %s"%str(e))
                 self.dialog.hide()
                 return
 
@@ -225,7 +236,7 @@ class Bootloader:
             except:
                 pass
 
-            gobject.gobject.idle_add(self.task, self.state)
+            GObject.idle_add(self.task, self.state)
         else:
             self.dialog.hide()
             self.running = False
@@ -293,7 +304,8 @@ class ColorStats:
                     np.percentile(new_buf, 75))
 
         def get_color_stats(self, pixbuf):
-            buf = pixbuf.get_pixels_array()
+            pixels = np.fromstring(pixbuf.get_pixels(), dtype=np.uint8)
+            buf = pixels.reshape((pixbuf.get_width(), pixbuf.get_height(), 3)) 
 
             r_stats = self.stats(buf, lambda x: x[0])
             g_stats = self.stats(buf, lambda x: x[1])
@@ -352,7 +364,8 @@ class ColorStats:
 class OMVGtk:
     def __init__(self):
         #Set the Glade file
-        self.builder = gtk.Builder()
+        self.builder = Gtk.Builder()
+        GObject.type_register(GtkSource.View)
         self.builder.add_from_file(GLADE_PATH)
 
         # get top window
@@ -385,25 +398,17 @@ class OMVGtk:
         map(lambda x:x.set_sensitive(False), self.controls)
 
         # gtksourceview widget
-        sourceview = gtksourceview.View()
-        lang_manager = gtksourceview.language_manager_get_default()
-        style_manager = gtksourceview.style_scheme_manager_get_default()
+        lang_manager = GtkSource.LanguageManager()
+        style_manager = GtkSource.StyleSchemeManager()
+        sourceview = self.builder.get_object('gtksourceview')
 
         # append cwd to style search paths
         style_manager.set_search_path(style_manager.get_search_path() +
-                [os.path.join(IDE_DIR, "share/gtksourceview-2.0/styles")])
+                [os.path.join(IDE_DIR, "share/gtksourceview-3.0/styles")])
 
         # append cwd to language search paths
         lang_manager.set_search_path(lang_manager.get_search_path() +
-                [os.path.join(IDE_DIR, "share/gtksourceview-2.0/language-specs")])
-
-        # configure gtksourceview widget
-        sourceview.set_show_line_numbers(True)
-        sourceview.set_tab_width(4)
-        sourceview.set_indent_on_tab(True)
-        sourceview.set_insert_spaces_instead_of_tabs(True)
-        sourceview.set_auto_indent(True)
-        sourceview.set_highlight_current_line(True)
+                [os.path.join(IDE_DIR, "share/gtksourceview-3.0/language-specs")])
 
         fonts = []
         for font in sourceview.get_pango_context().list_families():
@@ -411,34 +416,32 @@ class OMVGtk:
 
         if sys.platform.startswith("win"):
             if "consolas" in fonts:
-                sourceview.modify_font(pango.FontDescription("consolas 10"))
+                sourceview.modify_font(Pango.FontDescription("consolas 10"))
             else:
-                sourceview.modify_font(pango.FontDescription("courier new 10"))
+                sourceview.modify_font(Pango.FontDescription("courier new 10"))
         elif sys.platform.startswith("darwin"):
             if "monaco" in fonts:
-                sourceview.modify_font(pango.FontDescription("monaco 10"))
+                sourceview.modify_font(Pango.FontDescription("monaco 10"))
             else:
-                sourceview.modify_font(pango.FontDescription("courier new 10"))
+                sourceview.modify_font(Pango.FontDescription("courier new 10"))
         elif sys.platform.startswith("linux"):
             if "dejavu sans mono" in fonts:
-                sourceview.modify_font(pango.FontDescription("dejavu sans mono 10"))
+                sourceview.modify_font(Pango.FontDescription("dejavu sans mono 10"))
             else:
-                sourceview.modify_font(pango.FontDescription("courier new 10"))
+                sourceview.modify_font(Pango.FontDescription("courier new 10"))
 
         # configure gtksourceview buffer
-        self.buffer = gtksourceview.Buffer()
+        self.buffer = GtkSource.Buffer()
         self.buffer.set_highlight_syntax(True)
         self.buffer.set_language(lang_manager.get_language("python"))
         self.buffer.connect("changed", self.text_changed)
-
         sourceview.set_buffer(self.buffer)
-        self.builder.get_object("src_scrolledwindow").add(sourceview)
 
         # Configure terminal window
         self.terminal_scroll = self.builder.get_object('vte_scrolledwindow')
         self.terminal = self.builder.get_object('vte_textview')
-        self.terminal.modify_base(gtk.STATE_NORMAL, gtk.gdk.color_parse('black'))
-        self.terminal.modify_text(gtk.STATE_NORMAL, gtk.gdk.color_parse('green'))
+        self.terminal.override_color(Gtk.StateFlags.NORMAL, Gdk.RGBA(0, 1, 0, 1))
+        self.terminal.override_background_color(Gtk.StateFlags.NORMAL, Gdk.RGBA(0, 0, 0, 1))
 
         # get drawingarea
         self.fb = None
@@ -511,19 +514,19 @@ class OMVGtk:
         self.file_path= None
 
         # Built-in examples menu
-        submenu = gtk.Menu()
+        submenu = Gtk.Menu()
         for root, dirs, files in os.walk(EXAMPLES_DIR, topdown=True):
             for dirname in sorted(dirs):
-                smenu = gtk.Menu()
+                smenu = Gtk.Menu()
                 path = os.path.join(root, dirname)
                 for f in os.listdir(path):
                     if f.endswith(".py"):
                         label = os.path.basename(f)
-                        mitem = gtk.MenuItem(label, use_underline=False)
+                        mitem = Gtk.MenuItem(label, use_underline=False)
                         mitem.connect("activate", self.open_example, path)
                         smenu.append(mitem)
 
-                menu = gtk.MenuItem(dirname)
+                menu = Gtk.MenuItem(dirname)
                 menu.set_submenu(smenu)
                 submenu.append(menu)
 
@@ -583,8 +586,8 @@ class OMVGtk:
         self.bootloader = Bootloader(self.builder, self.config)
 
     def show_message_dialog(self, msg_type, msg):
-        message = gtk.MessageDialog(parent=self.window, flags=gtk.DIALOG_DESTROY_WITH_PARENT,
-                                    type=msg_type, buttons=gtk.BUTTONS_OK, message_format=msg)
+        message = Gtk.MessageDialog(parent=self.window, flags=Gtk.DIALOG_DESTROY_WITH_PARENT,
+                                    type=msg_type, buttons=Gtk.BUTTONS_OK, message_format=msg)
         message.run()
         message.destroy()
 
@@ -612,7 +615,7 @@ class OMVGtk:
                 error_msg = ("Failed to open serial port.\n"
                              "Please check the preferences Dialog.\n")
 
-            self.show_message_dialog(gtk.MESSAGE_ERROR,"%s%s"%(error_msg, e))
+            self.show_message_dialog(Gtk.MESSAGE_ERROR,"%s%s"%(error_msg, e))
             return
 
         # Set higher timeout after connecting for lengthy transfers.
@@ -625,7 +628,7 @@ class OMVGtk:
 
         if (fw_ver[0] != FIRMWARE_VERSION_MAJOR or fw_ver[1] != FIRMWARE_VERSION_MINOR):
             self.connected = False
-            self.show_message_dialog(gtk.MESSAGE_ERROR,
+            self.show_message_dialog(Gtk.MESSAGE_ERROR,
                     "Firmware version mismatch!\n"
                     "Please update the firmware image and/or the IDE!")
         else:
@@ -665,7 +668,7 @@ class OMVGtk:
         openmv.disconnect()
 
     def execute_clicked(self, widget):
-        buf = self.buffer.get_text(self.buffer.get_start_iter(), self.buffer.get_end_iter())
+        buf = self.buffer.get_text(self.buffer.get_start_iter(), self.buffer.get_end_iter(), False)
         # exec script
         openmv.exec_script(buf)
         self.exec_button.set_sensitive(False)
@@ -718,7 +721,7 @@ class OMVGtk:
         jpeg_check.set_active(self.enable_jpeg)
 
         # Save config
-        if dialog.run() == gtk.RESPONSE_OK:
+        if dialog.run() == Gtk.ResponseType.OK:
             self.config.set("main", "board", board_combo.get_active_text())
             self.config.set("main", "serial_port", sport_combo.get_active_text())
             self.config.set("main", "baudrate", baud_combo.get_active_text())
@@ -762,14 +765,16 @@ class OMVGtk:
         self.x2 = int(event.x)
         self.y2 = int(event.y)
         if self.pixbuf and x < self.pixbuf.get_width() and y < self.pixbuf.get_height():
-            pixel = self.pixbuf.get_pixels_array()[y][x]
+            pixels = np.fromstring(self.pixbuf.get_pixels(), dtype=np.uint8)
+            pixels = pixels.reshape((self.pixbuf.get_width(), self.pixbuf.get_height(), 3)) 
+            pixel = pixels[y][x]
             rgb = "(%d, %d, %d)" %(pixel[0], pixel[1], pixel[2])
             self.statusbar.pop(self.statusbar_ctx)
             self.statusbar.push(self.statusbar_ctx, rgb)
 
     def scroll_terminal(self, widget, event):
         adj = self.terminal_scroll.get_vadjustment()
-        adj.set_value(adj.upper - adj.page_size)
+        adj.set_value(adj.get_upper() - adj.get_page_size())
 
     def update_terminal(self):
         if (self.connected):
@@ -806,17 +811,17 @@ class OMVGtk:
 
         if fb:
             # create pixbuf from np array
-            self.pixbuf = gtk.gdk.pixbuf_new_from_array(fb[2], gtk.gdk.COLORSPACE_RGB, 8)
-            self.pixbuf = self.pixbuf.scale_simple(fb[0]*SCALE, fb[1]*SCALE, gtk.gdk.INTERP_BILINEAR)
+            self.pixbuf = GdkPixbuf.Pixbuf.new_from_data(fb[2], GdkPixbuf.Colorspace.RGB, False, 8, fb[0], fb[1], fb[0]*3)
+            self.pixbuf = self.pixbuf.scale_simple(fb[0]*SCALE, fb[1]*SCALE, GdkPixbuf.InterpType.BILINEAR)
 
             self.drawingarea.realize();
-            cm = self.drawingarea.window.get_colormap()
-            gc = self.drawingarea.window.new_gc(foreground=cm.alloc_color('#FFFFFF',True,False))
-
             self.drawingarea.set_size_request(fb[0]*SCALE, fb[1]*SCALE)
-            self.drawingarea.window.draw_pixbuf(gc, self.pixbuf, 0, 0, 0, 0)
-            if self.selection_started or self.da_menu.flags() & gtk.MAPPED:
-                self.drawingarea.window.draw_rectangle(gc, False, self.x1, self.y1, self.x2-self.x1, self.y2-self.y1)
+            context = self.drawingarea.get_window().cairo_create()
+            Gdk.cairo_set_source_pixbuf(context, self.pixbuf, 0, 0)
+            context.paint()
+
+#            if self.selection_started or self.da_menu.flags() & Gtk.MAPPED:
+#                self.drawingarea.get_window().draw_rectangle(gc, False, self.x1, self.y1, self.x2-self.x1, self.y2-self.y1)
 
         return True
 
@@ -862,11 +867,11 @@ class OMVGtk:
         if len(self.files)>RECENT_FILES_LIMIT:
             self.files.pop()
 
-        submenu = gtk.Menu()
+        submenu = Gtk.Menu()
         menu = self.builder.get_object('recent_menu')
         for f in self.files:
             if f.endswith(".py"):
-                mitem =gtk.MenuItem(f, use_underline=False)
+                mitem =Gtk.MenuItem(f, use_underline=False)
                 mitem.connect("activate", self.open_example, "")
                 submenu.append(mitem)
 
@@ -891,16 +896,16 @@ class OMVGtk:
 
     def _save_file(self, new_file):
         if new_file:
-            dialog = gtk.FileChooserDialog(title=None,action=gtk.FILE_CHOOSER_ACTION_SAVE,
-                    buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL, gtk.STOCK_OPEN, gtk.RESPONSE_OK))
-            dialog.set_default_response(gtk.RESPONSE_OK)
+            dialog = Gtk.FileChooserDialog(title=None,action=Gtk.FILE_CHOOSER_ACTION_SAVE,
+                    buttons=(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_OPEN, Gtk.ResponseType.OK))
+            dialog.set_default_response(Gtk.ResponseType.OK)
             dialog.set_current_folder(SCRIPTS_DIR)
-            ff = gtk.FileFilter()
+            ff = Gtk.FileFilter()
             ff.set_name("python")
             ff.add_pattern("*.py")
             dialog.add_filter(ff)
 
-            if dialog.run() == gtk.RESPONSE_OK:
+            if dialog.run() == Gtk.ResponseType.OK:
                 self.file_path = dialog.get_filename()
                 self.save_button.set_sensitive(False)
                 self._update_title()
@@ -931,8 +936,8 @@ class OMVGtk:
             h = max(1, self.y2-self.y1)
 
             cs = ColorStats()
-            stats = cs.get_color_stats(self.pixbuf.subpixbuf(x, y, w, h))
-            self.show_message_dialog(gtk.MESSAGE_INFO, stats)
+            stats = cs.get_color_stats(self.pixbuf.new_subpixbuf(x, y, w, h))
+            self.show_message_dialog(Gtk.MESSAGE_INFO, stats)
 
     def save_template(self, widget):
         self.da_menu.hide()
@@ -949,9 +954,9 @@ class OMVGtk:
 
             dialog = self.builder.get_object("save_template_dialog")
             dialog.set_transient_for(self.window);
-            #dialog.set_default_response(gtk.RESPONSE_OK)
+            #dialog.set_default_response(Gtk.ResponseType.OK)
 
-            if dialog.run() == gtk.RESPONSE_OK:
+            if dialog.run() == Gtk.ResponseType.OK:
                 openmv.save_template(x/SCALE, y/SCALE, w/SCALE, h/SCALE, entry.get_text()) #Use Scale
             dialog.hide()
 
@@ -970,9 +975,9 @@ class OMVGtk:
 
             dialog = self.builder.get_object("save_descriptor_dialog")
             dialog.set_transient_for(self.window);
-            #dialog.set_default_response(gtk.RESPONSE_OK)
+            #dialog.set_default_response(Gtk.ResponseType.OK)
 
-            if dialog.run() == gtk.RESPONSE_OK:
+            if dialog.run() == Gtk.ResponseType.OK:
                 #if not entry.get_text():
                 openmv.save_descriptor(x/SCALE, y/SCALE, w/SCALE, h/SCALE, entry.get_text()) #Use Scale
             dialog.hide()
@@ -987,16 +992,16 @@ class OMVGtk:
         self._save_file(True)
 
     def open_file(self, widget):
-        dialog = gtk.FileChooserDialog(title=None,action=gtk.FILE_CHOOSER_ACTION_OPEN,
-                buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL, gtk.STOCK_OPEN, gtk.RESPONSE_OK))
-        dialog.set_default_response(gtk.RESPONSE_OK)
+        dialog = Gtk.FileChooserDialog(title=None,action=Gtk.FILE_CHOOSER_ACTION_OPEN,
+                buttons=(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_OPEN, Gtk.ResponseType.OK))
+        dialog.set_default_response(Gtk.ResponseType.OK)
         dialog.set_current_folder(SCRIPTS_DIR)
-        ff = gtk.FileFilter()
+        ff = Gtk.FileFilter()
         ff.set_name("python")
         ff.add_pattern("*.py")
         dialog.add_filter(ff)
 
-        if dialog.run() == gtk.RESPONSE_OK:
+        if dialog.run() == Gtk.ResponseType.OK:
             self._load_file(dialog.get_filename())
 
         dialog.destroy()
@@ -1062,16 +1067,16 @@ class OMVGtk:
 
         self.save_config()
         # exit
-        gtk.main_quit()
+        Gtk.main_quit()
 
 if __name__ == "__main__":
     omvgtk = OMVGtk()
     omvgtk.window.show_all()
     omvgtk.check_for_updates()
     # Terminal update callback
-    gobject.gobject.timeout_add(30, omvgtk.update_terminal)
+    GObject.timeout_add(30, omvgtk.update_terminal)
     # Framebuffer update callback
-    gobject.gobject.timeout_add(30, omvgtk.update_drawing)
+    GObject.timeout_add(30, omvgtk.update_drawing)
     # Execute button update callback
-    gobject.gobject.timeout_add(500, omvgtk.update_exec_button)
-    gtk.main()
+    GObject.timeout_add(500, omvgtk.update_exec_button)
+    Gtk.main()
