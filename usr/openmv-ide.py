@@ -398,8 +398,8 @@ class OMVGtk:
         map(lambda x:x.set_sensitive(False), self.controls)
 
         # gtksourceview widget
-        lang_manager = GtkSource.LanguageManager()
-        style_manager = GtkSource.StyleSchemeManager()
+        lang_manager = GtkSource.LanguageManager.get_default()
+        style_manager = GtkSource.StyleSchemeManager.get_default()
         sourceview = self.builder.get_object('gtksourceview')
 
         # append cwd to style search paths
